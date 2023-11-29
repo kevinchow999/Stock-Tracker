@@ -23,13 +23,13 @@ st.write('---')
 # Sidebar
 st.sidebar.subheader('Select Stock Ticker')
 
-# Retrieving tickers data
+# Retrieving tickers data using historical data
 ticker_import = pd.read_csv('https://raw.githubusercontent.com/kevinchow999/Stock-Tracker/main/StockTickers.txt')
 ticker_symbol = st.sidebar.selectbox('Stock ticker', ticker_import)  
 ticker_data = yf.Ticker(ticker_symbol)  
 start_date = st.sidebar.date_input("Start date", datetime.date(2023, 1, 1))
 end_date = st.sidebar.date_input("End date", datetime.date(2023, 12, 2))
-ticker_df = ticker_data.history(period='1h', start=start_date, end=end_date)  # get the historical prices for this ticker
+ticker_df = ticker_data.history(period='1h', start=start_date, end=end_date)  
 
 # Ticker information (additional exception handling)
 try:
@@ -48,15 +48,15 @@ if ticker_df.empty:
 else:
     ticker_df_reset = ticker_df.reset_index()
     ticker_df_reset['Date'] = ticker_df_reset['Date'].dt.strftime('%Y/%m/%d')
-    ticker_df_reset['Average Price'] = ticker_df_reset[['Open', 'High', 'Low', 'Close']].mean(axis=1)
-    display_columns = ['Date', 'Close', 'Average Price', 'Open', 'High', 'Low', 'Volume']
+    ticker_df_reset['Average Price'] = ticker_df_reset[['Open', 'Low', 'High', 'Close']].mean(axis=1)
+    display_columns = ['Date', 'Close', 'Average Price', 'Open', 'Low', 'High', 'Volume']
     formatted_ticker_df = ticker_df_reset[display_columns].rename(columns={'Close': 'Current Price'})
 
     # Display the formatted DataFrame
     st.dataframe(formatted_ticker_df)
     
-# Stock Price Chart
-st.header('**Stock Price Chart**')
+# Stock Price Graph
+st.header('**Stock Price Graph**')
 
 if not ticker_df.empty:
     fig = go.Figure(data=go.Scatter(x=ticker_df.index, y=ticker_df['Close'], mode='lines'))
