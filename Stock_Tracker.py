@@ -1,10 +1,8 @@
 import yfinance as yf
 import streamlit as st
 import pandas as pd
-import cufflinks as cf
 import datetime
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 # Application Text
 st.markdown('''
@@ -27,9 +25,6 @@ st.sidebar.subheader('Select Stock Ticker')
 ticker_import = pd.read_csv('https://raw.githubusercontent.com/kevinchow999/Stock-Tracker/main/StockTickers.txt')
 ticker_symbol = st.sidebar.selectbox('Stock ticker', ticker_import)  
 ticker_data = yf.Ticker(ticker_symbol)  
-start_date = st.sidebar.date_input("Start date", datetime.date(2023, 1, 1))
-end_date = st.sidebar.date_input("End date", datetime.date(2023, 12, 2))
-ticker_df = ticker_data.history(period='1h', start=start_date, end=end_date)  
 
 # Ticker information (additional exception handling)
 try:
@@ -41,22 +36,22 @@ else:
     st.header(f'**{ticker_name}**')
     st.info(ticker_summary)
 
-# Stock Data
-st.header('**Stock Data**')
-if ticker_df.empty:
-    st.warning("No historical data available for the selected period.")
-else:
-    ticker_df_reset = ticker_df.reset_index()
-    ticker_df_reset['Date'] = ticker_df_reset['Date'].dt.strftime('%Y/%m/%d')
-    ticker_df_reset['Average Price'] = ticker_df_reset[['Open', 'Low', 'High', 'Close']].mean(axis=1)
-    display_columns = ['Date', 'Close', 'Average Price', 'Open', 'Low', 'High', 'Volume']
-    formatted_ticker_df = ticker_df_reset[display_columns].rename(columns={'Close': 'Current Price'})
-
-    # Display the formatted DataFrame
-    st.dataframe(formatted_ticker_df)
-    
 # Stock Price Graph
 st.header('**Stock Price Graph**')
+
+# Fetching Ticker Data
+try:
+    if selected_period == "1d":
+        ticker_df = ticker_data.history(period="1d", interval="1m")
+    elif selected_period == "5d" :
+        ticker_df = ticker_data.history(period="5d", interval="1h")
+    elif selected_period == "1mo" :
+        ticker_df = ticker_data.history(period="1mo", interval="90m")
+    else:
+        ticker_df = ticker_data.history(period=selected_period)
+except Exception as e:
+    st.warning(f"An error occurred while fetching stock data: {e}")
+    ticker_df = pd.DataFrame()
 
 if not ticker_df.empty:
     fig = go.Figure(data=go.Scatter(x=ticker_df.index, y=ticker_df['Close'], mode='lines'))
@@ -65,7 +60,41 @@ if not ticker_df.empty:
         yaxis_title='Closing Price (USD)',
     )
 
+    if selected_period == "5d":
+        # Set x-axis type to 'category' for better scaling
+        fig.update_xaxes(type='category')
+
     # Display the graph
     st.plotly_chart(fig)
 else:
     st.warning("No stock data available for the selected period.")
+
+# Time Period Selection
+st.sidebar.subheader('Select Time Period')
+period_options = ["1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"]
+selected_period = st.sidebar.selectbox('Time Period', period_options)
+
+# Stock Data
+st.header('**Stock Data**')
+if ticker_df.empty:
+    st.warning("No historical data available for the selected period.")
+else:
+    ticker_df_filtered = ticker_df[ticker_df['Volume'] != 0]
+
+    ticker_df_reset = ticker_df_filtered.reset_index()
+    
+    if 'Date' in ticker_df_reset.columns:
+        # Format the date consistently
+        ticker_df_reset['Date'] = ticker_df_reset['Date'].dt.strftime('%Y/%m/%d %H:%M:%S')
+    
+    # Displaying The Stock Chart (1d, 5d, use Datetime due to hour/minute period intervals for high graph accuracy)
+    if selected_period in ["1d", "5d","1mo"]:
+        ticker_df_reset['Average Price'] = ticker_df_reset[['Open', 'Low', 'High', 'Close']].mean(axis=1)
+        display_columns = ['Datetime', 'Open', 'Close', 'Average Price', 'Low', 'High', 'Volume']
+        formatted_ticker_df = ticker_df_reset[display_columns]
+    else:
+        ticker_df_reset['Average Price'] = ticker_df_reset[['Open', 'Low', 'High', 'Close']].mean(axis=1)
+        display_columns = ['Date', 'Open', 'Close', 'Average Price', 'Low', 'High', 'Volume']
+        formatted_ticker_df = ticker_df_reset[display_columns]
+
+    st.dataframe(formatted_ticker_df)
