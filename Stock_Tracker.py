@@ -15,6 +15,7 @@ st.markdown('''
   - **datetime**: Used for working with dates and times.
   - **pandas**: Used for data manipulation and analysis.
   - **plotly**: Used for creating interactive plots.
+  - **datetime**: Used for formatting dates and times in the.
 ''')
 st.write('---')
 
@@ -36,8 +37,10 @@ else:
     st.header(f'**{ticker_name}**')
     st.info(ticker_summary)
 
-# Stock Price Graph
-st.header('**Stock Price Graph**')
+# Time Period Selection
+st.sidebar.subheader('Select Time Period')
+period_options = ["1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"]
+selected_period = st.sidebar.selectbox('Time Period', period_options)
 
 # Fetching Ticker Data
 try:
@@ -52,27 +55,6 @@ try:
 except Exception as e:
     st.warning(f"An error occurred while fetching stock data: {e}")
     ticker_df = pd.DataFrame()
-
-if not ticker_df.empty:
-    fig = go.Figure(data=go.Scatter(x=ticker_df.index, y=ticker_df['Close'], mode='lines'))
-    fig.update_layout(
-        xaxis_title='Date',
-        yaxis_title='Closing Price (USD)',
-    )
-
-    if selected_period == "5d":
-        # Set x-axis type to 'category' for better scaling
-        fig.update_xaxes(type='category')
-
-    # Display the graph
-    st.plotly_chart(fig)
-else:
-    st.warning("No stock data available for the selected period.")
-
-# Time Period Selection
-st.sidebar.subheader('Select Time Period')
-period_options = ["1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"]
-selected_period = st.sidebar.selectbox('Time Period', period_options)
 
 # Stock Data
 st.header('**Stock Data**')
@@ -98,3 +80,22 @@ else:
         formatted_ticker_df = ticker_df_reset[display_columns]
 
     st.dataframe(formatted_ticker_df)
+    
+# Stock Price Graph
+st.header('**Stock Price Graph**')
+
+if not ticker_df.empty:
+    fig = go.Figure(data=go.Scatter(x=ticker_df.index, y=ticker_df['Close'], mode='lines'))
+    fig.update_layout(
+        xaxis_title='Date',
+        yaxis_title='Closing Price (USD)',
+    )
+
+    if selected_period == "5d":
+        # Set x-axis type to 'category' for better scaling
+        fig.update_xaxes(type='category')
+
+    # Display the graph
+    st.plotly_chart(fig)
+else:
+    st.warning("No stock data available for the selected period.")
