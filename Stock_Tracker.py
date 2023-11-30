@@ -15,7 +15,6 @@ st.markdown('''
   - **datetime**: Used for working with dates and times.
   - **pandas**: Used for data manipulation and analysis.
   - **plotly**: Used for creating interactive plots.
-  - **datetime**: Used for formatting dates and times in the.
 ''')
 st.write('---')
 
@@ -39,19 +38,37 @@ else:
 
 # Time Period Selection
 st.sidebar.subheader('Select Time Period')
-period_options = ["1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"]
-selected_period = st.sidebar.selectbox('Time Period', period_options)
+
+# Mapping display names to backend values
+period_options_mapping = {
+    "1 Day": "1d",
+    "5 Days": "5d",
+    "1 Month": "1mo",
+    "3 Months": "3mo",
+    "6 Months": "6mo",
+    "1 Year": "1y",
+    "2 Years": "2y",
+    "5 Years": "5y",
+    "10 Years": "10y",
+    "Year to Date": "ytd",
+    "Max": "max"
+}
+
+selected_period = st.sidebar.selectbox('Time Period', list(period_options_mapping.keys()))
+
+# Backend value corresponding to the selected display name
+selected_backend_value = period_options_mapping[selected_period]
 
 # Fetching Ticker Data
 try:
-    if selected_period == "1d":
-        ticker_df = ticker_data.history(period="1d", interval="1m")
-    elif selected_period == "5d" :
-        ticker_df = ticker_data.history(period="5d", interval="1h")
-    elif selected_period == "1mo" :
-        ticker_df = ticker_data.history(period="1mo", interval="90m")
+    if selected_backend_value == "1d":
+        ticker_df = ticker_data.history(period=selected_backend_value, interval="1m")
+    elif selected_backend_value == "5d" :
+        ticker_df = ticker_data.history(period=selected_backend_value, interval="1h")
+    elif selected_backend_value == "1mo" :
+        ticker_df = ticker_data.history(period=selected_backend_value, interval="90m")
     else:
-        ticker_df = ticker_data.history(period=selected_period)
+        ticker_df = ticker_data.history(period=selected_backend_value)
 except Exception as e:
     st.warning(f"An error occurred while fetching stock data: {e}")
     ticker_df = pd.DataFrame()
@@ -70,7 +87,7 @@ else:
         ticker_df_reset['Date'] = ticker_df_reset['Date'].dt.strftime('%Y/%m/%d %H:%M:%S')
     
     # Displaying The Stock Chart (1d, 5d, use Datetime due to hour/minute period intervals for high graph accuracy)
-    if selected_period in ["1d", "5d","1mo"]:
+    if selected_backend_value in ["1d", "5d","1mo"]:
         ticker_df_reset['Average Price'] = ticker_df_reset[['Open', 'Low', 'High', 'Close']].mean(axis=1)
         display_columns = ['Datetime', 'Open', 'Close', 'Average Price', 'Low', 'High', 'Volume']
         formatted_ticker_df = ticker_df_reset[display_columns]
@@ -91,7 +108,7 @@ if not ticker_df.empty:
         yaxis_title='Closing Price (USD)',
     )
 
-    if selected_period == "5d":
+    if selected_backend_value == "5d":
         # Set x-axis type to 'category' for better scaling
         fig.update_xaxes(type='category')
 
